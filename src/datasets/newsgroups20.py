@@ -1,7 +1,7 @@
 from base.torchnlp_dataset import TorchnlpDataset
 from torchnlp.datasets.dataset import Dataset
 from torchnlp.encoders.text import SpacyEncoder
-from torchnlp.utils import datasets_iterator
+# from torchnlp.utils import datasets_iterator
 from torchnlp.encoders.text.default_reserved_tokens import DEFAULT_SOS_TOKEN
 from torch.utils.data import Subset
 from sklearn.datasets import fetch_20newsgroups
@@ -65,14 +65,14 @@ class Newsgroups20_Dataset(TorchnlpDataset):
         self.train_set = Subset(self.train_set, train_idx_normal)
 
         # Make corpus and set encoder
-        text_corpus = [row['text'] for row in datasets_iterator(self.train_set, self.test_set)]
+        text_corpus = [row['text'] for row in itertools.chain(self.train_set, self.test_set)]
         if tokenizer == 'spacy':
             self.encoder = SpacyEncoder(text_corpus, min_occurrences=3, append_eos=append_eos)
         if tokenizer == 'bert':
             self.encoder = MyBertTokenizer.from_pretrained('bert-base-uncased', cache_dir=root)
 
         # Encode
-        for row in datasets_iterator(self.train_set, self.test_set):
+        for row in itertools.chain(self.train_set, self.test_set):
             if append_sos:
                 sos_id = self.encoder.stoi[DEFAULT_SOS_TOKEN]
                 row['text'] = torch.cat((torch.tensor(sos_id).unsqueeze(0), self.encoder.encode(row['text'])))
@@ -83,7 +83,7 @@ class Newsgroups20_Dataset(TorchnlpDataset):
         if use_tfidf_weights:
             compute_tfidf_weights(self.train_set, self.test_set, vocab_size=self.encoder.vocab_size)
         else:
-            for row in datasets_iterator(self.train_set, self.test_set):
+            for row in itertools.chain(self.train_set, self.test_set):
                 row['weight'] = torch.empty(0)
 
         # Get indices after pre-processing
